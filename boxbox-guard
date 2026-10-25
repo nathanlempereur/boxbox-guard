@@ -1,0 +1,178 @@
+#!/bin/bash
+
+
+# --- Variables de systeme ---
+CONF_DIR="/etc/boxbox-guard"
+CONF_FILE="${CONF_DIR}/boxbox-guard.conf"
+
+
+if [[ $EUID -ne 0 ]]; then
+   echo "Erreur : Boxbox-Guard doit être exécuté en root."
+   exit 1
+fi
+
+if ! command -v lxc-ls &> /dev/null; then
+    echo "Erreur : La commande lxc-ls est introuvable. L'hôte utilise-t-il bien LXC standard ?"
+    exit 1
+fi
+
+if [[ ! -f "$CONF_FILE" ]]; then
+    echo "Erreur : Fichier $CONF_FILE introuvable."
+    exit 1
+else
+    source "$CONF_FILE"
+fi
+
+#Prochainement
+#if [[ ! -f "$SKIP_FILE" ]];then
+#    echo "Erreur : Fichier $SKIP_FILE introuvable."
+#    exit 1
+#else
+#    source "$SKIP_FILE"
+#fi
+
+
+
+#Dossier de cache en cas d'erreur (si il existe pas)
+mkdir -p "$CACHE_DIR"
+if [[ ! -f "$LOG_FILE" ]]; then
+    touch "$LOG_FILE"
+fi
+
+# Sécurisation des permissions
+chmod -R 750 "$CONF_DIR"
+chmod 640 "${CONF_DIR}"/*
+
+
+while true; do
+    #On crée la liste des différentes box
+    liste_conteneurs=$(lxc-ls | tr -s " " " ")
+
+    for box in $(echo "$liste_conteneurs");do
+
+        #Par défault on met en indéfinie les infos
+        b="N/A"
+        TEST_PING="N/A"
+        d="N/A"
+        e="N/A"
+        f="N/A"
+        g="N/A"
+        #Le fichier chache de la zone
+        CACHE_FILE="${CACHE_DIR}/${box}.cache"
+
+        horodatage=$(date "$DATE_FORMAT")
+
+        c=$(lxc-ls -f | grep -w "$box" | head -n 1 | awk '{print $2}') #On recupere le status de la box
+
+        # Si le cache existe et que la machine tourne, elle est déjà en quarantaine ou a été relancer manuellement. On la passe.
+        if [[ -f "$CACHE_FILE" && "$c" == "RUNNING" ]]; then
+            continue
+        fi
+
+        if [[ "$c" == "RUNNING" ]];then
+
+            #Zone           $box
+            #IP-Zone        $b
+            #User-Error     $d
+            #SSH-Error      $e
+            #tmp-Error      $f
+            #AuthLogs-Error $g
+
+            #b=Prend l'IP
+            #d=Test si un user reel a été ajouté dans la zone
+            #e=Test si un fichier de config ou clé ssh a été installer
+            #f=Test si un exe (cheval de troie, virus, mineur de crypto) a été installer dans /tmp
+            #g=Test si le fichier Auth.log a été vider pour effecer les traces
+
+            b=$(lxc-ls -f | grep -w "$box" | head -n 1 | awk '{print $5}' | tr -d ",")
+
+            sleep 2
+            if ping -c 1 -W 2 "$b" > /dev/null 2>&1; then
+                TEST_PING="YES"
+            else
+                TEST_PING="NO"
+            fi
+
+            ##############################
+            ##### ON LANCE LES TESTS #####
+            ##############################
+            if [[ "$TEST_USER" -eq 1 ]];then
+                d=$(if [[ $(lxc-attach "$box" -- /bin/bash -c 'cat /etc/passwd | grep "/bin/bash"' | wc | awk '{print $1}') -gt $NB_USER_MAX ]];then echo "YES";else echo "NO";fi;)
+
+                if [[ ! -f "$CACHE_FILE" && "$d" == "YES" ]];then
+                    echo "${horodatage} - [${box}] : User réel suppérieur à '$NB_USER_MAX' detecter" >> "$LOG_FILE"
+                fi
+            fi
+
+            if [[ "$TEST_ROOT_SSH" -eq 1 ]];then
+                e=$(if [[ $(lxc-attach "$box" -- /bin/bash -c 'ls -A /root/.ssh/ 2>/dev/null | wc -l') -gt $NB_FICHIER_MAX ]];then echo "YES";else echo "NO";fi;)
+
+                if [[ ! -f "$CACHE_FILE" && "$e" == "YES" ]];then
+                    echo "${horodatage} - [${box}] : Nombre de fichiers ou dossiers trouvée dans /root/.ssh suppérieur à ${NB_FICHIER_MAX}" >> "$LOG_FILE"
+                fi
+            fi
+
+            if [[ "$TEST_PROGRAM" -eq 1 ]];then
+                f=$(if [[ $(lxc-attach "$box" -- /bin/bash -c 'ls -l /proc/*/exe 2>/dev/null | grep -c -- "-> /tmp/"') != 0 ]];then echo "YES";else echo "NO";fi;)
+
+                if [[ ! -f "$CACHE_FILE" && "$f" == "YES" ]];then
+                    echo "${horodatage} - [${box}] : programme potenciellement dangereux trouvée dans /tmp" >> "$LOG_FILE"
+                fi
+            fi
+
+            if [[ "$TEST_AUTH_CLEAR" -eq 1 ]];then
+                g=$(if [[ $(lxc-attach "$box" -- /bin/bash -c 'stat -c %s /var/log/auth.log 2>/dev/null || echo "0"') == 0 ]];then echo "YES";else echo "NO";fi;)
+
+                if [[ ! -f "$CACHE_FILE" && "$g" == "YES" ]];then
+                    echo "${horodatage} - [${box}] : fichier Auth.log vide trouvée" >> "$LOG_FILE"
+                fi
+            fi
+
+
+
+            if [[ "$d" == "YES" || "$e" == "YES" || "$f" == "YES" || "$g" == "YES" ]];then
+
+                if [[ ! -f "$CACHE_FILE" ]];then
+                    if [[ "$ERROR_ACTION" == "hard" ]];then
+                        lxc-stop -n "$box"
+                        echo "${horodatage} - [${box}] : Action - Conteneur éteint" >> "$LOG_FILE"
+                    elif [[ "$ERROR_ACTION" == "simple" ]];then
+                        lxc-attach "$box" -- /bin/bash -c 'for i in $(ls /sys/class/net | grep -v "^lo$"); do ip link set "$i" down; done'
+                        echo "${horodatage} - [${box}] : Action - Conteneur déconnecté du réseau interne" >> "$LOG_FILE"
+                    else
+                        echo "${horodatage} - [${box}] : Action - Erreur de config, aucune action faite.." >> "$LOG_FILE"
+                    fi
+                fi
+
+                #Sauvegarde des erreurs dans le cache dans tout les cas
+                echo "$b,$TEST_PING,$d,$e,$f,$g" > "$CACHE_FILE"
+
+            c="STOPPED"
+
+            else
+                #On supprime le fichier cache si il existe si aucune erreur machine allumer
+                rm -f "$CACHE_FILE" 2>/dev/null
+            fi
+
+        else
+            #Si le serveur est off, on vérifie si y'a du cache
+            if [[ -f "$CACHE_FILE" ]];then
+                #On recharge les valeurs cache si y'a un fichier
+                valeurs=$(cat "$CACHE_FILE" | tr "," " ")
+
+                b=$(echo "$valeurs" | awk '{print $1}')
+                TEST_PING=$(echo "$valeurs" | awk '{print $2}')
+                d=$(echo "$valeurs" | awk '{print $3}')
+                e=$(echo "$valeurs" | awk '{print $4}')
+                f=$(echo "$valeurs" | awk '{print $5}')
+                g=$(echo "$valeurs" | awk '{print $6}')
+            fi
+        fi
+
+        #Vérif
+        echo "$box,$b,$TEST_PING,$c,$d,$e,$f,$g"
+    done
+
+    # Pause avant de recommencer le scan
+    sleep "$SCAN_INTERVAL"
+done

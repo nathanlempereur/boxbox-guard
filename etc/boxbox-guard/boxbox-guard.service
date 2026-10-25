@@ -1,0 +1,11 @@
+[Unit]
+Description=Boxbox-Guard LXC Security Monitor
+After=network.target lxc.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/boxbox-guard
+User=root
+
+[Install]
+WantedBy=multi-user.target
