@@ -1,6 +1,6 @@
 # boxbox-Guard V1.2
 
-![Version](https://img.shields.io/badge/version-1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2-blue.svg)
 ![Status](https://img.shields.io/badge/status-Libre-orange)
 ![PHP](https://img.shields.io/badge/BASH2-777BB4)
 ![LXC](https://img.shields.io/badge/LXC-compatible-success)
