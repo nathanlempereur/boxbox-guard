@@ -52,7 +52,7 @@ sudo ./install.sh
 
 
 
-## ⚙️ Configuratioon :
+## ⚙️ Configuration :
 
 Les fichiers de configuration se trouvent dans `/etc/boxbox-guard/` :
 
