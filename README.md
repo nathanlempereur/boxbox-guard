@@ -80,3 +80,29 @@ Les alertes et actions entreprises par le script sont enregistrées dans :
 tail -f /var/log/boxbox-guard.log
 
 ```
+
+---
+
+## Compatibilité !!
+
+L'utilisation de cet outil est optimisée pour :
+- **OS** : Linux / Ubuntu.
+- **Droits** : Accès Root ou sudo obligatoire.
+
+---
+
+## Contribution & Licence
+
+Ce module est **open-source**. Vous pouvez le modifier et proposer des améliorations via des **Pull Requests**.
+
+**Licence** : Ce projet est sous licence libre.
+**Contact** : contact@nlempereur.ovh
+
+---
+
+### Contact
+- Email : **contact@nlempereur.ovh**
+- Site web : https://nlempereur.ovh/contact.php
+- Portfolio : https://nlempereur;ovh
+
+---
