@@ -69,6 +69,20 @@ systemctl restart boxbox-guard.service
 
 ```
 
+```
+├── /usr/local/bin/
+│   └── boxbox-guard
+│
+├── /etc/boxbox-guard/
+│   ├── action.d/
+│   ├── version.info
+│   ├── boxbox-guard.conf
+│   ├── containers-skip.csv
+│   ├── boxbox-guard.service
+│
+└── /etc/systemd/system/
+    └── ln boxbox-guard.service
+```
 
 
 ## Logs et Debug :
