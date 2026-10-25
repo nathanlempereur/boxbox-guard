@@ -8,16 +8,16 @@
 ![LXC](https://img.shields.io/badge/Debian-success)
 ![LXC](https://img.shields.io/badge/Ubuntu-success)
 
-Boxbox-Guard est un système léger et modulaire de sécurité et de monitoring pour les conteneurs LXC sous Debian. Il tourne en arrière-plan sur l'hôte et surveille l'activité des conteneurs pour détecter et bloquer les compromissions en temps réel.
+Boxbox-Guard est un système léger et modulaire de sécurité et de monitoring pour les conteneurs LXC sous Debian ou Ubuntu. Il tourne en arrière-plan sur l'hôte et surveille l'activité des conteneurs pour détecter et bloquer les compromissions en temps réel.
 
 
 
 ## Fonctionnalités (Capteurs) :
 
-* **Détection d'utilisateurs illégitimes** (`TEST_USER`) : Vérifie si un attaquant crée un compte caché avec un accès shell (bash).
-* **Détection de Backdoor SSH** (`TEST_ROOT_SSH`) : Vérifie l'ajout de clés SSH ou de fichier de configurations non autorisées dans le répertoire `/root/.ssh/`.
-* **Détection de processus malveillants** (`TEST_PROGRAM`) : Vérifie l'exécution de programmes suspects (mineurs de crypto, malwares) depuis le dossier `/tmp`.
-* **Détection de dissimulation** (`TEST_AUTH_CLEAR`) : Verifie si le fichier `/var/log/auth.log` est vidé pour effacer des traces.
+* **Détection d'utilisateurs illégitimes** : Vérifie si un attaquant crée un compte caché avec un accès shell (bash).
+* **Détection de Backdoor SSH** : Vérifie l'ajout de clés SSH ou de fichier de configurations non autorisées dans le répertoire `/root/.ssh/`.
+* **Détection de processus malveillants** : Vérifie l'exécution de programmes suspects (mineurs de crypto, malwares) depuis le dossier `/tmp`.
+* **Détection de dissimulation** : Verifie si le fichier `/var/log/auth.log` est vidé pour effacer des traces.
 
 
 
@@ -80,6 +80,8 @@ Les alertes et actions entreprises par le script sont enregistrées dans :
 tail -f /var/log/boxbox-guard.log
 
 ```
+
+Si une erreur est détecter, vous devez apporter les rectification, boxbox-guard détectera que tout est ok et reprendra pour le conteneur
 
 ---
 
