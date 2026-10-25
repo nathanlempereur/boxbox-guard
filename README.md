@@ -1,4 +1,4 @@
-# boxbox-Guard V1.0
+# boxbox-Guard V1.2
 
 ![Version](https://img.shields.io/badge/version-1.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-Libre-orange)
